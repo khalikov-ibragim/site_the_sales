@@ -26,8 +26,18 @@ jobs:
         run: docker compose logs back
 
         # health check backend
-      - name: check backend
-        run: curl -f http://localhost:8000/health
+      - name: wait for backend
+        run: |
+          for i in $(seq 1 30); do
+          if curl -f http://localhost:8000/health; then
+          echo "backend ready"
+            exit 0
+          fi
+          echo "waiting... attempt $i"
+          sleep 2
+          done
+          echo "backend did not start in time"
+          exit 1
 
         # health check bd
       - name: check bd

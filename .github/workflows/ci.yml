@@ -15,7 +15,7 @@ jobs:
       - name: check the container
         run: docker compose ps -a
   healthcheck:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -11,6 +11,6 @@ jobs:
       - name: build container
         run: docker compose build
       - name: run the container
-        run: docker compose up
+        run: docker compose up -d
       - name: check the container
         run: docker compose ps -a

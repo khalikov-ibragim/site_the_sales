@@ -14,3 +14,14 @@ jobs:
         run: docker compose up -d
       - name: check the container
         run: docker compose ps -a
+  healthcheck:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: check backend
+      - run: curl -f http://back:8000
+        name: check frontend
+      - run: curl -f http://localhost:1234
+        name: check bd
+      - run: docker compose exec database pg_isready -U admin

@@ -8,18 +8,23 @@ jobs:
     steps:
       - name: Run my repository
         uses: actions/checkout@v4
+
+        #Building my container
       - name: build container
         run: docker compose build
+
+        # Run my container
       - name: run the container
         run: docker compose up -d
+
+        # checking work the container
       - name: check the container
         run: docker compose ps -a
-  healthcheck:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        name: check backend
-      - run: curl -f http://back:8000
-        name: check bd
-      - run: docker compose exec database pg_isready -U admin
+
+        # health check backend
+      - name: check backend
+        run: curl -f http://back:8000
+
+        # health check bd
+      - name: check bd
+        run: docker compose exec database pg_isready -U admin

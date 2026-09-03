@@ -23,7 +23,7 @@ jobs:
 
         # health check backend
       - name: check backend
-        run: curl -f http://back:8000
+        run: curl -f http://localhost:8000
 
         # health check bd
       - name: check bd

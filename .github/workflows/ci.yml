@@ -23,7 +23,7 @@ jobs:
 
         # show backend logs
       - name: show backend logs
-        run: docker compose logs backend
+        run: docker compose logs back
 
         # health check backend
       - name: check backend

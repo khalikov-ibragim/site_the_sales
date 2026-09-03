@@ -9,8 +9,8 @@ jobs:
       - name: Run my repository
         uses: actions/checkout@v4
       - name: build container
-        run: docker-compose build
+        run: docker compose build
       - name: run the container
-        run: docker-compose up
+        run: docker compose up
       - name: check the container
-        run: docker-compose ps -a
+        run: docker compose ps -a

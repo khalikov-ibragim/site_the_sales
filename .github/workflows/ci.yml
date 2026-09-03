@@ -21,6 +21,10 @@ jobs:
       - name: check the container
         run: docker compose ps -a
 
+        # show backend logs
+      - name: show backend logs
+        run: docker compose logs backend
+
         # health check backend
       - name: check backend
         run: curl -f http://localhost:8000/health

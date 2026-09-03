@@ -6,7 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test_image
+      - name: Run my repository
         uses: actions/checkout@v4
-      - name: Test_text
-        run: echo "Hello world!"
+      - name: build container
+        run: docker-compose build
+      - name: run the container
+        run: docker-compose up
+      - name: check the container
+        run: docker-compose ps -a

@@ -44,5 +44,5 @@ jobs:
 
       #test backend
       - name: test api
-        run: docker compose exec -T python /backend/test_api.py
+        run: docker compose exec -T back python /backend/test_api.py
 

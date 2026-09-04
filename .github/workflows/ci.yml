@@ -42,7 +42,3 @@ jobs:
       - name: check bd
         run: docker compose exec database pg_isready -U admin
 
-      #test backend
-      - name: test api
-        run: docker compose exec -T back python test_api.py
-

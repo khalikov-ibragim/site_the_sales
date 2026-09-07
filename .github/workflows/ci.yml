@@ -40,9 +40,10 @@ jobs:
           exit 1
       #test backend
       - name: test api
-        run: docker compose exec -T back python test_api.py | tee test-report.txt
-      - uses: actions/upload-artifact@v4
+        run: docker compose exec -T back python test_api.py | tee test-report.txt #tee- пишет вывод и в терминал и в файл test-report.txt
+      - uses: actions/upload-artifact@v4 #сохраняем его в артефактах
         with:
-          name: test-results
-          path: test-report.txt
-
+          name: test-results #даем ему название
+          path: test-report.txt #даем ему путь
+      - name: show my secret
+        run: echo "Мой секрет ${{ secrets.MY_TEST_SECRET }}"

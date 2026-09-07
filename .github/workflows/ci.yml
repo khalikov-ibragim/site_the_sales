@@ -76,5 +76,5 @@ jobs:
         run: docker compose pull
         # Start containters
       - name: start containers
-        run: docker compose ud -d
+        run: docker compose up -d
 

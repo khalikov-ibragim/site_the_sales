@@ -44,5 +44,9 @@ jobs:
 
       #test backend
       - name: test api
-        run: docker compose exec -T back python test_api.py
+        run: docker compose exec -T back python test_api.py | tee test-report.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-report.txt
 

@@ -1,23 +1,23 @@
-import requests
+import requests #Подключаю библиотеку request
 
-BASE = "http://localhost:8000"
+BASE = "http://localhost:8000" #Создал переменную с адрессом который буду часто использовать
 
-EMAIL = "test@example.com"
-PASSWORD = "TestPass123"
+EMAIL = "test@example.com" # Создал переменные с тестовыми данными
+PASSWORD = "TestPass123"   # Создал переменные с тестовыми данными
 
-def main():
+def main(): #Создание функции с именем main
     # 1. Список товаров должен отвечать 200
-    r = requests.get(f"{BASE}/api/products")
-    assert r.status_code == 200, f"products: ожидал 200, получил {r.status_code}"
+    r = requests.get(f"{BASE}/api/products") #Отправляет GET-запрос по адрессу и делает возврат обьекта r
+    assert r.status_code == 200, f"products: ожидал 200, получил {r.status_code}" #если условие правда то ничего не происходит.Если лож то программа падает  с этим сообщением
     print(f"[OK] products -> {r.status_code}")
 
     # 2. Регистрация нового пользователя -> 200
-    r = requests.post(f"{BASE}/api/auth/register", json={
+    r = requests.post(f"{BASE}/api/auth/register", json={ # Отправляю тело запроса в виде логина и парля  в виде JSON-строки
         "name": "Тест Юзер",
         "email": EMAIL,
         "password": PASSWORD,
     })
-    assert r.status_code == 200, f"register: ожидал 200, получил {r.status_code}"
+    assert r.status_code == 200, f"register: ожидал 200, получил {r.status_code}" #Ожидаем такой вывод кода если нет программа падает
     print(f"[OK] register -> {r.status_code}")
 
     # 3. Логин с ПРАВИЛЬНЫМ паролем -> 200 + токен

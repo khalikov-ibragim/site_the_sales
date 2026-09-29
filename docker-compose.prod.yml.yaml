@@ -1,7 +1,7 @@
 ---
 services:
   front:
-    build: ./frontend
+    image: glimpl/site_the_sales-front:${TAG:-latest}
     ports:
       - "1234:80"
     restart: always
@@ -9,7 +9,7 @@ services:
       - back
 
   back:
-    build: ./backend
+    image: glimpl/site_the_sales-back:${TAG:-latest}
     ports:
       - "8000:8000"
     depends_on:
@@ -51,3 +51,4 @@ services:
 volumes:
   pgadmin_data:
   postgres_data:
+

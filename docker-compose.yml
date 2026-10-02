@@ -34,6 +34,7 @@ services:
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
   pgadmin:
     image: docker.io/dpage/pgadmin4:latest

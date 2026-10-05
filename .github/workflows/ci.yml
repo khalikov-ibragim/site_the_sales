@@ -96,7 +96,13 @@ jobs:
         # pull image
       - name: pull images
         run: docker compose pull
+        # БД поднимается первой: psql для миграций живёт внутри контейнера
+      - name: start database
+        run: docker compose up -d database
+        # Миграции — до старта приложения, иначе новый backend начнёт
+        # обращаться к схеме, которой ещё нет (UndefinedColumnError)
+      - name: apply migrations
+        run: ./backend/migrations/migrate.sh
         # Start containters
       - name: start containers
         run: docker compose up -d
-

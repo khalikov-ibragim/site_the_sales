@@ -15,7 +15,7 @@
 # Переопределить можно через DB_CONTAINER / DB_USER / DB_NAME.
 set -euo pipefail
 
-DB_CONTAINER="${DB_CONTAINER:-site_the_sales_database_1}"
+DB_CONTAINER="${DB_CONTAINER:-site_the_sales-database-1}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 DB_USER="${DB_USER:-$(podman exec "$DB_CONTAINER" sh -c 'printf %s "$POSTGRES_USER"')}"

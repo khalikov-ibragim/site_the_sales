@@ -100,6 +100,9 @@ jobs:
       - name: pull images
         run: docker compose pull
         # БД поднимается первой: psql для миграций живёт внутри контейнера
+      - name: Copy my secrets
+        run: cp .env.example .env
+
       - name: start database
         run: docker compose up -d database
         # Миграции — до старта приложения, иначе новый backend начнёт

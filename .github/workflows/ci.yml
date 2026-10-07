@@ -31,6 +31,9 @@ jobs:
       - name: Run my repository
         uses: actions/checkout@v4
 
+      - name: Copy my secrets
+        run: cp .env.example .env
+
         #Building my container
       - name: build container
         run: docker compose build

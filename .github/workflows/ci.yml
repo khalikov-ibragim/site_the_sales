@@ -80,13 +80,13 @@ jobs:
         run: |
           docker tag site_the_sales-back glimpl/site_the_sales-back:latest
           docker push glimpl/site_the_sales-back:latest
-          docker tag glimpl/site_the_sales-back:latest glimpl/file-gallery-frontend:${GITHUB_SHA::7}  
+          docker tag glimpl/site_the_sales-back:latest glimpl/site_the_sales-back:${GITHUB_SHA::7}  
           docker push glimpl/site_the_sales-back:${GITHUB_SHA::7}
       - name: build and push frontend
         run: |
           docker tag site_the_sales-front glimpl/site_the_sales-front:latest
           docker push glimpl/site_the_sales-front:latest
-          docker tag glimpl/site_the_sales-front:latest glimpl/file-gallery-frontend:${GITHUB_SHA::7}  
+          docker tag glimpl/site_the_sales-front:latest glimpl/site_the_sales-front:${GITHUB_SHA::7}  
           docker push glimpl/site_the_sales-front:${GITHUB_SHA::7}
   deploy:
     runs-on: self-hosted

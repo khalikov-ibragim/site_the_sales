@@ -1,0 +1,73 @@
+#Service for Frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: front
+  namespace: site-the-sales
+  labels:
+    app: frontend
+spec:
+  type: NodePort #Доступ снаружи кластера через IP ноды
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80 #Порт сервиса внутри кластера
+      targetPort: 80 #ПОрт  внутри контейнера
+      nodePort: 30080 #ПОрт на ноде k3s
+
+---
+#Service for Backend
+apiVersion: v1
+kind: Service
+metadata:
+  name: back
+  namespace: site-the-sales
+  labels:
+    app: backend
+spec:
+  type: ClusterIP #Доступ только ВНУТРИ кластера
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000 #порт контейнер
+
+---
+#Service for database
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: site-the-sales
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  selector:
+    name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+
+
+---
+#Service for pgadmin
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-service
+  namespace: site-the-sales
+  labels:
+    app: pgadmin
+spec:
+  type: NodePort
+  selector:
+    app: pgadmin
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30081

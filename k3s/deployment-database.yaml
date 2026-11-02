@@ -1,0 +1,62 @@
+apiVersion: v1 #API для PVC
+kind: PersistentVolumeClaim #Запрос на выделение постоянного хранилища
+metadata:
+  name: postgres-pvc
+  namespace: site-the-sales
+spec:
+  accessModes: #Режим доступа
+    - ReadWriteOnce #Монтируется только на одной ноде в режиме RW
+  resources:
+    requests:
+      storage: 5Gi #Обьем хранилища
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: site-the-sales
+  labels:
+    name: postgres
+    tier: database
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5 #Сколько реплик хранить для обратного шага
+  selector:
+    matchLabels:
+      name: postgres
+  strategy:
+    type: Recreate #Улаоение старого пода перед созданием нового
+  template:
+    metadata:
+      labels:
+        name: postgres
+        tier: database
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: postgres
+          image: docker.io/postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: db-secret #Берет ВСЕ переменные из secret и передает в контейнер
+          volumeMounts:  # Монтирование тома
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data #Путь хранения данных Postgres
+              subPath: postgres #Опц. поддиректория внутри тома
+          resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim: #Заявка на создание хранилища
+            claimName: postgres-pvc #Ссылка на PVC

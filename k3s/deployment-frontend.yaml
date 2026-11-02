@@ -1,0 +1,56 @@
+apiVersion: apps/v1 #Указываем apps/ и версию
+kind: Deployment #Тип ресура
+metadata: #Метаданные самого обьекта Deployment
+  name: frontend #имя деплоя в кластере
+  namespace: site-the-sales #имя пространства
+  labels: #Метка самого deployment
+    app: frontend
+spec: #спецификация
+  replicas: 3 #количество подов
+  revisionHistoryLimit: 5 #Сколько старый ReplicaSet хранить для rollback
+  progressDeadlineSeconds: 600 #Макс время на раскат обновления иначе сост. = ProgressDeadlineExceeded
+  minReadySeconds: 0 #Сколько секунд должен быть готов под для того что бы его считаь доступным при обновлении подов
+  selector: #Как будет находить поды
+    matchLabels: #строгий селектов меток
+      app: frontend #Должен совпадать с названием в метаданных
+  strategy: #Стратегия обновления подов
+    type: RollingUpdate #Постепенная замена подов при обновлении
+    rollingUpdate: #Параметры
+      maxUnavailable: 1 #Максимальное кол-во подов которые могут быть недоступны в процессе обновления
+      maxSurge: 1 #максимальное кол-во подов которые могут быть созданы в процессе обновления
+  template: #Шаблон для создания подов
+    metadata:
+      labels:
+        app: frontend #должны совпадать с selector.matchLabels
+    spec: #Спецификация пода
+      restartPolicy: Always #политика рестарта контейнеров deployment = always
+      containers:
+        - name: frontend #Имя контейнера внутри pod
+          image: docker.io/glimpl/site_the_sales-front:latest
+          imagePullPolicy: IfNotPresent #Всегда стараться подтянуть образ удобно при ;latest
+          ports:
+            - name: http
+              containerPort: 80 #указываем внутренний порт контейнера
+          resources: #Ресурсы выдыляемые на контейнер
+            requests: #Минимально гарантированные ресурсы для планировщика
+              memory: "256Mi"
+              cpu: "250m" #100m = 0.1 CPU
+            limits: #Максимум
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe: #Готовоность принятия трафика
+            httpGet:
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 10 #Задержка перед первой проверкой (дать приложению раскрыться)
+          livenessProbe: #Проверка на то жив ли контейнер, если нет, контейнер перезапустят
+            httpGet: #метод http GET
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 30 #Должно быть больше чем readiness, что бы не перезапускать из за старта
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+

@@ -1,16 +1,17 @@
 # ТОК — интернет-магазин электроники
 
-Учебный fullstack-проект: FastAPI + PostgreSQL + nginx + pgAdmin, всё упаковано
-в контейнеры через podman-compose.
+Учебный fullstack-проект: FastAPI + PostgreSQL + nginx + pgAdmin.
+
+Проект можно запустить как через **docker/podman-compose** для локальной разработки, так и в **Kubernetes (k3s)** с использованием манифестов из директории `k3s/`.
 
 ## Стек
 
 - **Frontend:** HTML, CSS, vanilla JavaScript, nginx
-- **Backend:** FastAPI, Uvicorn, asyncpg, Pydantic
+- **Backend:** FastAPI, Uvicorn, asyncpg, Pydantic, python-jose, bcrypt
 - **Database:** PostgreSQL 17
-- **Auth:** bcrypt (hash паролей) + JWT (HS256)
+- **Auth:** bcrypt + JWT (HS256)
 - **Admin:** pgAdmin
-- **Containerization:** Podman / podman-compose
+- **Оркестрация:** Kubernetes (k3s) / Docker Compose / Podman Compose
 
 ## Возможности
 
@@ -18,21 +19,94 @@
 - Корзина на клиенте (localStorage)
 - Регистрация и авторизация через JWT
 - Оформление заказа с транзакцией и проверкой остатков
-- Swagger-документация API: `http://localhost:8000/docs`
+- Swagger-документация API
 
-## Состав сервисов (docker-compose.yml)
+## Структура проекта
 
-| Сервис   | Порт снаружи | Примечание |
-|----------|--------------|------------|
-| frontend | `1234`       | nginx отдаёт статику и проксирует `/api` |
-| backend  | `8000`       | FastAPI/uvicorn |
-| database | `5432`       | PostgreSQL 17, том `postgres_data` |
-| pgadmin  | `5678`       | веб-панель БД |
+```text
+.
+├── backend/
+│   ├── routes/        # auth, products, orders
+│   ├── auth.py        # bcrypt + JWT
+│   ├── database.py    # asyncpg-подключение
+│   ├── init_db.sql    # схема БД + тестовые товары
+│   ├── main.py
+│   ├── models.py      # Pydantic-модели
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── css/
+│   ├── js/            # api.js, cart.js, app.js, data.js
+│   ├── index.html
+│   ├── nginx.conf     # проксинг /api на бэкенд + SPA-фоллбэк
+│   └── Dockerfile
+├── k3s/               # Манифесты Kubernetes (k3s)
+│   ├── namespace.yaml
+│   ├── secret.yaml.example
+│   ├── configmap.yaml
+│   ├── deployment-backend.yaml
+│   ├── deployment-database.yaml
+│   ├── deployment-frontend.yaml
+│   ├── deployment-pgadmin.yaml
+│   └── service.yaml
+├── docker-compose.yml
+├── .env.example
+└── Readme.md
+```
 
-## Быстрый старт
+## Запуск в Kubernetes (k3s)
+
+### 1) Создать namespace и секреты
 
 ```bash
-podman-compose up -d    # или docker-compose up -d
+kubectl apply -f k3s/namespace.yaml
+
+# Скопировать шаблон и заполнить своими значениями
+cp k3s/secret.yaml.example k3s/secret.yaml
+# Отредактировать k3s/secret.yaml
+
+kubectl apply -f k3s/secret.yaml
+```
+
+### 2) Применить все манифесты
+
+```bash
+kubectl apply -f k3s/
+```
+
+### 3) Инициализировать базу данных
+
+В Kubernetes схема БД и тестовые товары не создаются автоматически. Нужно применить `backend/init_db.sql` вручную:
+
+```bash
+POD=$(kubectl get pod -n site-the-sales -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+cat backend/init_db.sql | kubectl exec -i -n site-the-sales $POD -- psql -U admin -d mybase
+```
+
+Или с копированием файла в под:
+
+```bash
+POD=$(kubectl get pod -n site-the-sales -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+kubectl cp backend/init_db.sql site-the-sales/$POD:/tmp/init_db.sql
+kubectl exec -n site-the-sales $POD -- psql -U admin -d mybase -f /tmp/init_db.sql
+```
+
+### 4) Проверить состояние и доступ
+
+```bash
+kubectl get pods,svc -n site-the-sales
+```
+
+Доступ осуществляется через **NodePort** сервиса `front` и `pg-service`. 
+Nginx во фронтенд-поде проксирует `location /api` на сервис `back:8000`. В конфиге используется `resolver` CoreDNS для корректного резолва сервисов в кластере k3s.
+
+## Локальный запуск (docker/podman-compose)
+
+```bash
+cp .env.example .env
+# заполнить .env
+
+podman-compose up -d  # или docker-compose up -d
 ```
 
 Доступ:
@@ -41,44 +115,11 @@ podman-compose up -d    # или docker-compose up -d
 - **API (Swagger):** http://localhost:8000/docs
 - **pgAdmin:** http://localhost:5678
 
-При первом старте `backend/init_db.sql` создаёт схему и наполняет таблицу
-10 тестовыми товарами.
+При первом запуску через compose `backend/init_db.sql` создаёт схему и наполняет таблицу 10 тестовыми товарами.
 
-## Структура
+## Важные нюансы
 
-```text
-.
-├── frontend/
-│   ├── css/
-│   ├── js/            # data.js (моки), api.js, cart.js, app.js
-│   ├── index.html
-│   ├── nginx.conf
-│   └── Dockerfile
-├── backend/
-│   ├── routes/        # auth, products, orders
-│   ├── auth.py        # bcrypt + JWT
-│   ├── database.py    # asyncpg-подключение
-│   ├── init_db.sql
-│   ├── main.py
-│   ├── models.py      # Pydantic-модели
-│   ├── requirements.txt   # версии зафиксированы
-│   └── Dockerfile
-└── docker-compose.yml
-```
-
-## Примечание про frontend
-
-Сетевое взаимодействие собрано в `frontend/js/api.js` — остальной код с ним не
-связан напрямую. Корзина живёт в `localStorage` (`frontend/js/cart.js`). Если
-захочешь перенести корзину на сервер — интерфейс `cart.js` (add/remove/setQty/
-getItems/getTotal) можно оставить прежним.
-
-## Предложения по улучшению
-
-1. **Добавить healthcheck** для `database` и `depends_on: condition: service_healthy`
-   к backend — сейчас порядок по `depends_on` без реальной готовности.
-2. **`.dockerignore`** для frontend и backend (исключить `.env`, `__pycache__`, `.venv`).
-3. **`SECRET_KEY`** захардкожен в compose — генерировать случайный и хранить в `.env`.
-4. **Экранировать HTML** при рендере данных из БД на фронтенде (защита от XSS).
-5. **Единый точка входа**: сейчас frontend и backend проброшены отдельными портами;
-   можно проксировать всё через nginx на один порт.
+- **Секреты.** `k3s/secret.yaml` добавлен в `.gitignore` и **не коммитится**. Для создания используйте `k3s/secret.yaml.example`.
+- **nginx resolver.** В Kubernetes nginx не читает `/etc/resolv.conf` для `proxy_pass`. В `frontend/nginx.conf` явно указан `resolver` (CoreDNS), что необходимо для корректной работы проксирования `/api` на бэкенд.
+- **Имена сервисов.** В k3s-манифестs бэкенд доступен под сервисом `back`, база данных — `database`.
+- **init_db.sql.** В кластере k3s инициализацию БД нужно выполнить вручную. В docker-compose в проекте используется отдельный подход, в к8s — ручной.

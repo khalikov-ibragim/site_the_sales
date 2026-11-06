@@ -140,4 +140,4 @@ jobs:
           kubectl -n site-the-sales rollout status deployment/backend --timeout=120s
 
           # Удаляем job миграций после успешного завершения  
-          kubectl -n site-the-sales delete job db-migrate-${GITHUB_SHA::7} --ignore-not-found=true
+          kubectl -n  site-the-sales delete job db-migrate-${GITHUB_SHA::7} --ignore-not-found=true

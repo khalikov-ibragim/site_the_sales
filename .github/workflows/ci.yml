@@ -126,7 +126,10 @@ jobs:
           done
 
           # Создаём новый запуск миграций из шаблона и ждём завершения
-          kubectl -n site-the-sales create job db-migrate-${GITHUB_SHA::7} --from=job/db-migrate
+          kubectl -n site-the-sales get job db-migrate -o yaml \
+            | sed "s/name: db-migrate/name: db-migrate-${GITHUB_SHA::7}/" \
+            | grep -v -E '^\s*(uid:|resourceVersion:|creationTimestamp:|generation:|selfLink:|namespace:|labels:\s*$|annotations:)' \
+            | kubectl -n site-the-sales create -f -
           kubectl -n site-the-sales wait --for=condition=complete job/db-migrate-${GITHUB_SHA::7} --timeout=300s
 
           # Обновляем образы в деплоях

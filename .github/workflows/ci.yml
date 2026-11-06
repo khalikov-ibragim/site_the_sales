@@ -121,6 +121,9 @@ jobs:
           #ждем завершение выполнения скрипта
           kubectl wait --for=condition=complete job/migrate-db-${GITHUB_SHA::7}
           
+          #создание уникального джоба для миграции
+          kubectl create job migrate-db-${GITHUB_SHA::7} --from=job/db-migrate -n site-the-sales
+          
           #обновление новых образов на сервере
           kubectl set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
           kubectl set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}

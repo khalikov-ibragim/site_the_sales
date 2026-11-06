@@ -27,7 +27,7 @@ spec:
     matchLabels:
       name: postgres
   strategy:
-    type: Recreate #Улаоение старого пода перед созданием нового
+    type: Recreate #Удаление старого пода перед созданием нового
   template:
     metadata:
       labels:

@@ -1,0 +1,27 @@
+apiVersion: batch/v1 #Группа для фоновых задач
+kind: Job #Обозначение одноразовой задачи
+metadata:
+  name: db-migrate
+  namespace: site-the-sales
+  labels:
+    app: db-migrate
+spec:
+  backoffLimit: 3 #Количество попыток при ошибке
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: docker.io/glimpl/site_the_sales-back:latest
+          command: ["sh", "-c"] #Запускаем shell
+          args: ./backend/migrations/migrate.sh #внутри образа бэкэнда запускаем скрипт миграции
+      envFrom:
+        - secretRef:
+            name: back-secret
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"

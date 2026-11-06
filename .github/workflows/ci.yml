@@ -9,13 +9,17 @@ jobs:
       - name: Copy my repository
         uses: actions/checkout@v4
 
-      - name: install linters
+      - name: install linters and kubeconform
         run: |
           sudo apt-get update
           sudo apt-get install -y yamllint shellcheck
           wget -qO /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
           sudo mv /tmp/hadolint /usr/local/bin/hadolint
           sudo chmod +x /usr/local/bin/hadolint
+          wget -qO /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp
+          sudo mv /tmp/kubeconform /usr/local/bin/kubeconform
+          sudo chmod +x /usr/local/bin/kubeconform
 
       - name: lint compose
         run: yamllint -d relaxed docker-compose*.y*ml
@@ -25,8 +29,12 @@ jobs:
 
       - name: lint shell scripts
         run: find . -name "*.sh" -print0 | xargs -0 -I{} shellcheck -P ../../ {}
+
+      - name: lint kubernetes manifests
+        run: kubeconform -strict -summary k3s/
   test:
     runs-on: ubuntu-latest
+    needs: [lint]
     steps:
       - name: Run my repository
         uses: actions/checkout@v4
@@ -92,27 +100,31 @@ jobs:
     runs-on: self-hosted
     needs: [test]
     steps:
-      - name: Run my repository
-        uses: actions/checkout@v4
-      #Login to docker hub
-      - name: Login to docker hub
-        uses: docker/login-action@v3
+      - name: Checkout repository
+        run: actions/checkout@v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-        # pull image
-      - name: pull images
-        run: docker compose pull
-        # БД поднимается первой: psql для миграций живёт внутри контейнера
-      - name: Copy my secrets
-        run: cp .env.example .env
+          version: 'v1.28.0'
 
-      - name: start database
-        run: docker compose up -d database
-        # Миграции — до старта приложения, иначе новый backend начнёт
-        # обращаться к схеме, которой ещё нет (UndefinedColumnError)
-      - name: apply migrations
-        run: ./backend/migrations/migrate.sh
-        # Start containters
-      - name: start containers
-        run: docker compose up -d
+      - name: Deploy to k3s cluster
+        env:
+          Kube_Config_Data: ${{ secrets.KUBECONFIG }} #Создаем переменную с нашим конфигом внутри
+        run: |
+          echo "$Kube_Config_Data" > /tmp/kubeconfig.yaml # Создаем реальный файл и записываем его 
+          export KUBECONFIG=/tmp/kubeconfig.yaml #Записываем правильный путь внутрь конфига (он для этого и предназначен)
+          kubectl cluster-info 
+          #Запуск всех кластеров
+          kubectl apply -f k3s/
+          #Создаем копию шаблона db-migrate
+          kubectl create job migrate-db-${GITHUB_SHA::7} --from=job/db-migrate
+          #ждем завершение выполнения скрипта
+          kubectl wait --for=condition=complete job/migrate-db-${GITHUB_SHA::7}
+          
+          #обновление новых образов на сервере
+          kubectl set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
+          kubectl set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}
+          
+          #проверка статуса подов
+          kubectl rollout status deployment/frontend -n site-the-sales --timeout=60s
+          kubectl rollout status deployment/backend -n site-the-sales --timeout=60s

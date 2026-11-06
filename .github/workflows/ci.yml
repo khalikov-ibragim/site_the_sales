@@ -115,13 +115,17 @@ jobs:
           export KUBECONFIG=/tmp/kubeconfig.yaml
           kubectl cluster-info
 
-          # Применяем все манифесты кластера
+          # Применяем все манифесты кластера (включая шаблон job/db-migrate)
           kubectl apply -f k3s/
 
-          # Удаляем старый job миграций если есть, чтобы запустить заново
-          kubectl -n site-the-sales delete job db-migrate --ignore-not-found=true
+          # Удаляем предыдущие запуски миграций (только с суффиксом SHA), шаблон db-migrate не трогаем
+          for job in $(kubectl -n site-the-sales get jobs -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            case "$job" in
+              db-migrate-*) kubectl -n site-the-sales delete job "$job" --ignore-not-found=true ;;
+            esac
+          done
 
-          # Создаём job из шаблона и ждём его завершения
+          # Создаём новый запуск миграций из шаблона и ждём завершения
           kubectl -n site-the-sales create job db-migrate-${GITHUB_SHA::7} --from=job/db-migrate
           kubectl -n site-the-sales wait --for=condition=complete job/db-migrate-${GITHUB_SHA::7} --timeout=300s
 
@@ -129,7 +133,7 @@ jobs:
           kubectl -n site-the-sales set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
           kubectl -n site-the-sales set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}
 
-          # Ждём выката 
+          # Ждём выката
           kubectl -n site-the-sales rollout status deployment/frontend --timeout=120s
           kubectl -n site-the-sales rollout status deployment/backend --timeout=120s
 

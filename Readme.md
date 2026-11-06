@@ -1,17 +1,19 @@
-# ТОК — интернет-магазин электроники
+# site-the-sales — интернет-магазин электроники
 
-Учебный fullstack-проект: FastAPI + PostgreSQL + nginx + pgAdmin.
+Fullstack-проект интернет-магазина на **FastAPI** + **PostgreSQL** с авторизацией, корзиной и оформлением заказов.
 
-Проект можно запустить как через **docker/podman-compose** для локальной разработки, так и в **Kubernetes (k3s)** с использованием манифестов из директории `k3s/`.
+Проект разворачивается как через **Docker/Podman Compose** для локальной разработки, так и в **Kubernetes (k3s)** с манифестами из директории `k3s/`. Настроен полноценный **CI/CD** в GitHub Actions с линтингом, тестированием, сборкой и пушем образов в Docker Hub и деплоем в k3s-кластер.
 
 ## Стек
 
-- **Frontend:** HTML, CSS, vanilla JavaScript, nginx
+- **Frontend:** HTML, CSS, vanilla JavaScript, Nginx
 - **Backend:** FastAPI, Uvicorn, asyncpg, Pydantic, python-jose, bcrypt
-- **Database:** PostgreSQL 17
+- **Database:** PostgreSQL
 - **Auth:** bcrypt + JWT (HS256)
-- **Admin:** pgAdmin
-- **Оркестрация:** Kubernetes (k3s) / Docker Compose / Podman Compose
+- **Migrations:** Bash + psql (идемпотентные миграции с трекингом в `schema_migrations`)
+- **CI/CD:** GitHub Actions, self-hosted runner
+- **Оркестрация:** Kubernetes (k3s), Docker Compose, Podman Compose
+- **Monitoring/Infra:** Ansible, Prometheus/Grafana (отдельная инфраструктура)
 
 ## Возможности
 

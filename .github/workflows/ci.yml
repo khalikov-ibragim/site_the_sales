@@ -109,25 +109,29 @@ jobs:
 
       - name: Deploy to k3s cluster
         env:
-          Kube_Config_Data: ${{ secrets.KUBECONFIG }} #Создаем переменную с нашим конфигом внутри
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
         run: |
-          echo "$Kube_Config_Data" > /tmp/kubeconfig.yaml # Создаем реальный файл и записываем его 
-          export KUBECONFIG=/tmp/kubeconfig.yaml #Записываем правильный путь внутрь конфига (он для этого и предназначен)
-          kubectl cluster-info 
-          #Запуск всех кластеров
+          echo "$KUBECONFIG_DATA" > /tmp/kubeconfig.yaml
+          export KUBECONFIG=/tmp/kubeconfig.yaml
+          kubectl cluster-info
+
+          # Применяем все манифесты кластера
           kubectl apply -f k3s/
-          #Создаем копию шаблона db-migrate
-          kubectl create job migrate-db-${GITHUB_SHA::7} --from=job/db-migrate
-          #ждем завершение выполнения скрипта
-          kubectl wait --for=condition=complete job/migrate-db-${GITHUB_SHA::7}
-          
-          #создание уникального джоба для миграции
-          kubectl create job migrate-db-${GITHUB_SHA::7} --from=job/db-migrate -n site-the-sales
-          
-          #обновление новых образов на сервере
-          kubectl set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
-          kubectl set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}
-          
-          #проверка статуса подов
-          kubectl rollout status deployment/frontend -n site-the-sales --timeout=60s
-          kubectl rollout status deployment/backend -n site-the-sales --timeout=60s
+
+          # Удаляем старый job миграций если есть, чтобы запустить заново
+          kubectl -n site-the-sales delete job db-migrate --ignore-not-found=true
+
+          # Создаём job из шаблона и ждём его завершения
+          kubectl -n site-the-sales create job db-migrate-${GITHUB_SHA::7} --from=job/db-migrate
+          kubectl -n site-the-sales wait --for=condition=complete job/db-migrate-${GITHUB_SHA::7} --timeout=300s
+
+          # Обновляем образы в деплоях
+          kubectl -n site-the-sales set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
+          kubectl -n site-the-sales set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}
+
+          # Ждём выката
+          kubectl -n site-the-sales rollout status deployment/frontend --timeout=120s
+          kubectl -n site-the-sales rollout status deployment/backend --timeout=120s
+
+          # Удаляем job миграций после успешного завершения
+          kubectl -n site-the-sales delete job db-migrate-${GITHUB_SHA::7} --ignore-not-found=true

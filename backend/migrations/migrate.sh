@@ -1,43 +1,42 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Применение миграций БД.
 #
-# Зачем: init_db.sql выполняет postgres только на пустом томе
-# (/docker-entrypoint-initdb.d отрабатывает один раз). Изменение схемы на уже
-# развёрнутой базе через него невозможно — файл молча не применяется.
-# Миграции применяют ALTER TABLE к существующей базе и повторяемы: применённые
-# версии записываются в schema_migrations и второй раз пропускаются.
+# Работает и в docker-compose (локально), и в Kubernetes.
+# Подключается к БД напрямую через psql, используя переменные окружения.
 #
-# Логин и имя базы берутся из env самого контейнера БД (POSTGRES_USER /
-# POSTGRES_DB заданы в compose), поэтому вручную передавать их не нужно.
-# psql на хосте не нужен — вызов идёт внутрь контейнера, поэтому скрипт работает
-# и локально, и на раннере без установки postgresql-client.
 #
-# Переопределить можно через DB_CONTAINER / DB_USER / DB_NAME.
-set -euo pipefail
+# Миграции идемпотентны: применённые версии записываются в schema_migrations
+# и второй раз пропускаются.
 
-DB_CONTAINER="${DB_CONTAINER:-site_the_sales-database-1}"
+set -eu
+
+# Проверяем, что все нужные переменные установлены
+: "${DB_HOST:?DB_HOST}"
+: "${DB_PORT:=5432}"
+: "${DB_USER:?DB_USER}"
+: "${DB_PASSWORD:?DB_PASSWORD}"
+: "${DB_NAME:?DB_NAME}"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export PGPASSWORD="$DB_PASSWORD"
 
-DB_USER="${DB_USER:-$(podman exec "$DB_CONTAINER" sh -c 'printf %s "$POSTGRES_USER"')}"
-DB_NAME="${DB_NAME:-$(podman exec "$DB_CONTAINER" sh -c 'printf %s "$POSTGRES_DB"')}"
-
-: "${DB_USER:?не удалось определить пользователя БД}"
-: "${DB_NAME:?не удалось определить имя БД}"
-
-# -i обязателен: без него контейнер не читает stdin.
+# Функция для выполнения SQL
 run_sql() {
-    podman exec -i "$DB_CONTAINER" \
-        psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" "$@"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+        -v ON_ERROR_STOP=1 "$@"
 }
 
-echo "миграции → контейнер $DB_CONTAINER, база $DB_NAME"
+echo "миграции → хост $DB_HOST:$DB_PORT, база $DB_NAME"
 
+# Создаём таблицу для отслеживания применённых миграций
 run_sql -q -c "CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );"
 
+# Применяем миграции в порядке имён файлов (001_, 002_, ...)
 for f in "$SCRIPT_DIR"/[0-9]*.sql; do
+    [ -e "$f" ] || continue
     version=$(basename "$f" .sql)
     applied=$(run_sql -tAq -c "SELECT 1 FROM schema_migrations WHERE version='$version'")
 
@@ -47,8 +46,7 @@ for f in "$SCRIPT_DIR"/[0-9]*.sql; do
     fi
 
     echo "  применяю: $version"
-    podman exec -i "$DB_CONTAINER" \
-        psql -q -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$f"
+    run_sql -q -f "$f"
     run_sql -q -c "INSERT INTO schema_migrations (version) VALUES ('$version')"
 done
 

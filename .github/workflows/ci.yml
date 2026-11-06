@@ -126,17 +126,17 @@ jobs:
           done
 
           # Создаём новый запуск миграций из шаблона и ждём завершения
-          kubectl -n site-the-sales get job db-migrate -o json | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-m = d['metadata']
-for k in ['uid','resourceVersion','creationTimestamp','generation','selfLink','managedFields','ownerReferences']:
-    m.pop(k, None)
-m.pop('annotations', None)
-m['name'] = 'db-migrate-${GITHUB_SHA::7}'
-d.pop('status', None)
-json.dump(d, sys.stdout)
-" | kubectl -n site-the-sales create -f -
+          kubectl -n site-the-sales get job db-migrate -o json | python3 -c " 
+          import sys, json
+          d = json.load(sys.stdin)
+          m = d['metadata']
+          for k in ['uid','resourceVersion','creationTimestamp','generation','selfLink','managedFields','ownerReferences']:
+          m.pop(k, None)
+          m.pop('annotations', None)
+          m['name'] = 'db-migrate-${GITHUB_SHA::7}'
+          d.pop('status', None)
+          json.dump(d, sys.stdout)
+          " | kubectl -n site-the-sales create -f -
           kubectl -n site-the-sales wait --for=condition=complete job/db-migrate-${GITHUB_SHA::7} --timeout=300s
 
           # Обновляем образы в деплоях

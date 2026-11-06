@@ -136,7 +136,7 @@ jobs:
           kubectl -n site-the-sales set image deployment/frontend frontend=glimpl/site_the_sales-front:${GITHUB_SHA::7}
           kubectl -n site-the-sales set image deployment/backend backend=glimpl/site_the_sales-back:${GITHUB_SHA::7}
 
-          # Ждём выката   
+          # Ждём выката    
           kubectl -n site-the-sales rollout status deployment/frontend --timeout=120s
           kubectl -n site-the-sales rollout status deployment/backend --timeout=120s
 

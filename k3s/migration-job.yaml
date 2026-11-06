@@ -14,7 +14,7 @@ spec:
         - name: migrate
           image: docker.io/glimpl/site_the_sales-back:latest
           command: ["sh", "-c"] #Запускаем shell
-          args: ["./backend/migrations/migrate.sh"] #внутри образа бэкэнда запускаем скрипт миграции
+          args: ["./migrations/migrate.sh"] #внутри образа бэкэнда запускаем скрипт миграции
           envFrom:
             - secretRef:
                 name: back-secret

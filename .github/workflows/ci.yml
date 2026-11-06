@@ -127,17 +127,7 @@ jobs:
 
           # Создаём новый запуск миграций из шаблона и ждём завершения
           JOB_NAME="db-migrate-${GITHUB_SHA::7}"
-          cat > /tmp/mkjob.py << 'PY'
-import sys, json, os
-d = json.load(sys.stdin)
-m = d['metadata']
-for k in ['uid', 'resourceVersion', 'creationTimestamp', 'generation', 'selfLink', 'managedFields', 'ownerReferences']:
-    m.pop(k, None)
-m.pop('annotations', None)
-m['name'] = os.environ['JOB_NAME']
-d.pop('status', None)
-json.dump(d, sys.stdout)
-PY
+          printf "%s\n" "import sys, json, os" "d = json.load(sys.stdin)" "m = d['metadata']" "for k in ['uid','resourceVersion','creationTimestamp','generation','selfLink','managedFields','ownerReferences']:" "    m.pop(k,None)" "m.pop('annotations',None)" "m['name']=os.environ['JOB_NAME']" "d.pop('status',None)" "json.dump(d,sys.stdout)" > /tmp/mkjob.py
           kubectl -n site-the-sales get job db-migrate -o json | JOB_NAME="$JOB_NAME" python3 /tmp/mkjob.py | kubectl -n site-the-sales create -f -
           kubectl -n site-the-sales wait --for=condition=complete job/$JOB_NAME --timeout=300s
 

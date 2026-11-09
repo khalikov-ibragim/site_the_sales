@@ -1,6 +1,11 @@
 #Указываем базовый образ
 FROM python:3.11-slim
 
+# Установка psql (одной строкой, без ошибок)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-client && \
+    rm -rf /var/lib/apt/lists/*
+
 #Создаем рабочую папку внутри контейнера внутри которой будут выполняться последнующие команды
 WORKDIR /app 
 

@@ -1,9 +1,5 @@
 #Указываем базовый образ
-FROM python:3.11-slim 
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.11-slim
 
 #Создаем рабочую папку внутри контейнера внутри которой будут выполняться последнующие команды
 WORKDIR /app 

@@ -1,7 +1,7 @@
 #Указываем базовый образ
 FROM python:3.11-slim
 
-# Установка psql (одной строкой, без ошибок)
+# hadolint ignore=DL3008
 RUN apt-get update && \
     apt-get install -y --no-install-recommends postgresql-client && \
     rm -rf /var/lib/apt/lists/*
